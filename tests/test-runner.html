@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MuseVault In-Browser Test Runner</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 24px;
+      margin: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: #38bdf8;
+    }
+    p {
+      color: #94a3b8;
+      margin-bottom: 20px;
+    }
+    .suite-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .suite-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+    }
+    .badge {
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .badge-pass { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .badge-fail { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .badge-running { background: rgba(10, 133, 234, 0.2); color: #38bdf8; }
+    .suite-log {
+      font-family: monospace;
+      font-size: 12px;
+      color: #cbd5e1;
+      margin-top: 10px;
+      background: #0f172a;
+      padding: 8px 12px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+    }
+    .btn-run {
+      background: #0a85ea;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    .btn-run:hover { background: #0871c8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>MuseVault Automated Test Runner</h1>
+    <p>Executes all 7 verification suites against mock or live Chrome extension runtime.</p>
+    <button id="btn-run-all" class="btn-run">▶ Run All Tests</button>
+    <div id="results"></div>
+  </div>
+
+  <script type="module">
+    import { setupMockChromeEnvironment } from './mock-chrome-api.js';
+    import { VaultStorage } from '../background/vault-storage.js';
+    import { TabManager } from '../background/tab-manager.js';
+    import { CookieManager, cookieToSetDetails } from '../background/cookie-manager.js';
+
+    const resultsContainer = document.getElementById('results');
+    const btnRunAll = document.getElementById('btn-run-all');
+
+    const suites = [
+      { id: 'TS-01', name: 'Account Vault CRUD Operations', fn: runCrudTest },
+      { id: 'TS-02', name: 'Storage Persistence (3+ Accounts)', fn: runPersistenceTest },
+      { id: 'TS-03', name: 'Live Session Capture & Snapshot', fn: runCaptureTest },
+      { id: 'TS-04', name: '1-Click Switch: Account A -> Account B', fn: runSwitchABTest },
+      { id: 'TS-05', name: 'Bidirectional Switch: Account B -> Account A', fn: runSwitchBATest },
+      { id: 'TS-06', name: 'Tab Management (Multi & No Tabs)', fn: runTabManagementTest },
+      { id: 'TS-07', name: 'Edge Cases & Fault Tolerance', fn: runEdgeCasesTest },
+      { id: 'TS-08', name: 'Remediation Verifications (Active Deletion Sync & Cookie Import)', fn: runRemediationTest }
+    ];
+
+    async function runAll() {
+      resultsContainer.innerHTML = '';
+      for (const suite of suites) {
+        const card = document.createElement('div');
+        card.className = 'suite-card';
+        card.innerHTML = `
+          <div class="suite-header">
+            <span>[${suite.id}] ${suite.name}</span>
+            <span class="badge badge-running">RUNNING...</span>
+          </div>
+          <div class="suite-log">Executing...</div>
+        `;
+        resultsContainer.appendChild(card);
+
+        const badge = card.querySelector('.badge');
+        const log = card.querySelector('.suite-log');
+
+        try {
+          const detail = await suite.fn();
+          badge.className = 'badge badge-pass';
+          badge.textContent = 'PASSED';
+          log.textContent = detail || 'All assertions passed successfully.';
+        } catch (err) {
+          badge.className = 'badge badge-fail';
+          badge.textContent = 'FAILED';
+          log.textContent = err.stack || err.message;
+        }
+      }
+    }
+
+    async function runCrudTest() {
+      const { chrome } = setupMockChromeEnvironment();
+      const storage = new VaultStorage(chrome.storage.local);
+      const acc = await storage.saveAccount({ id: 'acc_1', name: 'Test Account', cookies: [] });
+      if (acc.name !== 'Test Account') throw new Error('Create failed');
+      const updated = await storage.updateAccountMetadata('acc_1', { name: 'Updated' });
+      if (updated.name !== 'Updated') throw new Error('Update failed');
+      const deleted = await storage.deleteAccount('acc_1');
+      if (!deleted) throw new Error('Delete failed');
+      return 'Created, retrieved, updated, and deleted account successfully.';
+    }
+
+    async function runPersistenceTest() {
+      const { chrome, mockStorageLocal } = setupMockChromeEnvironment();
+      const s1 = new VaultStorage(chrome.storage.local);
+      await s1.saveAccount({ id: 'a1', name: 'Account 1' });
+      await s1.saveAccount({ id: 'a2', name: 'Account 2' });
+      await s1.saveAccount({ id: 'a3', name: 'Account 3' });
+      await s1.setActiveAccountId('a2');
+      const s2 = new VaultStorage(mockStorageLocal);
+      const state = await s2.getVaultState();
+      if (Object.keys(state.accounts).length !== 3) throw new Error('Expected 3 persisted accounts');
+      if (state.activeAccountId !== 'a2') throw new Error('Expected a2 as active');
+      return 'Verified 3 accounts persisted across storage recreation.';
+    }
+
+    async function runCaptureTest() {
+      const { chrome, mockCookies } = setupMockChromeEnvironment();
+      const storage = new VaultStorage(chrome.storage.local);
+      const cm = new CookieManager({ storage, cookiesApi: chrome.cookies });
+      await mockCookies.set({ url: 'https://muse.ai/', name: 'sess', value: '123' });
+      const captured = await cm.captureCurrentSession({ name: 'Captured' });
+      if (captured.cookieCount !== 1) throw new Error('Expected 1 captured cookie');
+      return 'Session cookie captured accurately.';
+    }
+
+    async function runSwitchABTest() {
+      const { chrome, mockCookies, mockTabs } = setupMockChromeEnvironment();
+      const storage = new VaultStorage(chrome.storage.local);
+      const tm = new TabManager(chrome.tabs);
+      const cm = new CookieManager({ storage, cookiesApi: chrome.cookies, tabManager: tm });
+      mockTabs.addTab({ url: 'https://muse.ai/workspace' });
+      await storage.saveAccount({ id: 'a', name: 'A', cookies: [{ name: 's', value: 'a_val' }] });
+      await storage.saveAccount({ id: 'b', name: 'B', cookies: [{ name: 's', value: 'b_val' }] });
+      await cm.switchAccount('b');
+      const live = await mockCookies.getAll({ domain: 'muse.ai' });
+      if (live[0]?.value !== 'b_val') throw new Error('Expected b_val in live cookies');
+      return 'Switch A -> B verified with cookie injection and tab reload.';
+    }
+
+    async function runSwitchBATest() {
+      const { chrome, mockCookies, mockTabs } = setupMockChromeEnvironment();
+      const storage = new VaultStorage(chrome.storage.local);
+      const tm = new TabManager(chrome.tabs);
+      const cm = new CookieManager({ storage, cookiesApi: chrome.cookies, tabManager: tm });
+      mockTabs.addTab({ url: 'https://muse.ai/' });
+      await storage.saveAccount({ id: 'a', name: 'A', cookies: [{ name: 's', value: 'a_val' }] });
+      await storage.saveAccount({ id: 'b', name: 'B', cookies: [{ name: 's', value: 'b_val' }] });
+      await cm.switchAccount('b');
+      await cm.switchAccount('a');
+      const live = await mockCookies.getAll({ domain: 'muse.ai' });
+      if (live[0]?.value !== 'a_val') throw new Error('Expected a_val in live cookies');
+      return 'Switch B -> A verified with accurate restoration.';
+    }
+
+    async function runTabManagementTest() {
+      const { chrome, mockTabs } = setupMockChromeEnvironment();
+      const storage = new VaultStorage(chrome.storage.local);
+      const tm = new TabManager(chrome.tabs);
+      const cm = new CookieManager({ storage, cookiesApi: chrome.cookies, tabManager: tm });
+      mockTabs.addTab({ url: 'https://muse.ai/dash' });
+      mockTabs.addTab({ url: 'https://muse.ai/settings' });
+      await storage.saveAccount({ id: 'x', cookies: [] });
+      await storage.saveAccount({ id: 'y', cookies: [] });
+      const res = await cm.switchAccount('y');
+      if (res.reloadedTabs !== 2) throw new Error('Expected 2 reloaded tabs');
+      return 'Both muse.ai tabs reloaded successfully.';
+    }
+
+    async function runEdgeCasesTest() {
+      const hostCookie = { name: 'h', value: '1', domain: 'muse.ai', hostOnly: true };
+      const setDet = cookieToSetDetails(hostCookie);
+      if (setDet.domain !== undefined) throw new Error('Domain should be omitted for hostOnly');
+      const ssCookie = { name: 'ss', value: '2', domain: 'muse.ai', sameSite: 'no_restriction' };
+      const setSs = cookieToSetDetails(ssCookie);
+      if (setSs.secure !== true) throw new Error('SameSite=None must be secure');
+      return 'Host-only and SameSite RFC compliance verified.';
+    }
+
+    async function runRemediationTest() {
+      const { chrome, mockCookies, mockTabs } = setupMockChromeEnvironment();
+      const storage = new VaultStorage(chrome.storage.local);
+      const tm = new TabManager(chrome.tabs);
+      const cm = new CookieManager({ storage, cookiesApi: chrome.cookies, tabManager: tm });
+
+      mockTabs.addTab({ url: 'https://muse.ai/workspace', active: true });
+      await storage.saveAccount({ id: 'a', name: 'A', cookies: [{ name: 'ca', value: 'va', domain: '.muse.ai', path: '/', secure: true }] });
+      await storage.saveAccount({ id: 'b', name: 'B', cookies: [{ name: 'cb', value: 'vb', domain: '.muse.ai', path: '/', secure: true }] });
+      await cm.switchAccount('a');
+
+      await cm.deleteAccountAndSync('a');
+      const st = await storage.getVaultState();
+      if (st.activeAccountId !== 'b') throw new Error('Active account should switch to b');
+      const live = await mockCookies.getAll({ domain: 'muse.ai' });
+      if (live.length !== 1 || live[0].value !== 'vb') throw new Error('Live cookies should be synchronized to b');
+
+      const imp = await storage.importVaultJson(JSON.stringify([{ name: 'cx', value: 'vx', domain: '.muse.ai', path: '/' }]));
+      if (imp.importedCount !== 1) throw new Error('Expected 1 imported account from cookie array');
+      return 'Active deletion sync and raw cookie array import verified.';
+    }
+
+    btnRunAll.onclick = runAll;
+    runAll();
+  </script>
+</body>
+</html>

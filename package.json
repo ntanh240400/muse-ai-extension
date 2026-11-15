@@ -1,0 +1,21 @@
+{
+  "name": "muse-ai-extension",
+  "version": "1.0.0",
+  "description": "MuseVault - Multi-Account Switcher for muse.ai (Chrome Manifest V3)",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/verify-engine.js",
+    "test:watch": "node --watch tests/verify-engine.js",
+    "generate-icons": "node scripts/generate-icons.js"
+  },
+  "keywords": [
+    "chrome-extension",
+    "manifest-v3",
+    "muse-ai",
+    "account-switcher",
+    "multi-account",
+    "1password-style"
+  ],
+  "author": "MuseVault Contributors",
+  "license": "MIT"
+}

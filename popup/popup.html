@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MuseVault</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body class="theme-dark">
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-lockup">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z" fill="url(#vault-grad)" stroke="#0A85EA" stroke-width="1.5"/>
+            <path d="M12 8V14M10 11H14" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="16" r="1.5" fill="#10B981"/>
+            <defs>
+              <linearGradient id="vault-grad" x1="3" y1="2" x2="21" y2="24" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#1E293B"/>
+                <stop offset="1" stop-color="#0F172A"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-title">
+          <span class="title-main">MuseVault</span>
+          <span class="platform-tag">muse.ai</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-toggle-search" class="icon-btn" title="Search accounts" aria-label="Search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+        <button id="btn-open-add" class="icon-btn btn-accent" title="Add or capture account" aria-label="Add account">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+        <button id="btn-toggle-theme" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">
+          <svg class="sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Search Bar (Collapsible) -->
+    <div id="search-container" class="search-container hidden">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="input-search" placeholder="Filter by name, email, or notes..." autocomplete="off">
+        <button id="btn-clear-search" class="icon-btn-sm hidden" aria-label="Clear search">✕</button>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Active Account Hero Card -->
+      <section id="hero-active-account" class="hero-section">
+        <!-- Rendered dynamically via popup.js -->
+      </section>
+
+      <!-- Account Vault List -->
+      <section id="vault-section" class="vault-section">
+        <div class="vault-header">
+          <span class="vault-title">Saved Accounts</span>
+          <span id="account-count-badge" class="badge-count">0</span>
+        </div>
+        <div id="account-list" class="account-list">
+          <!-- Account list items rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- Empty State View -->
+      <section id="empty-state" class="empty-state hidden">
+        <div class="empty-illustration">
+          <svg width="68" height="68" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="11" width="18" height="11" rx="2" fill="#1E293B" stroke="#0A85EA" stroke-width="1.5"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#0A85EA" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="12" cy="16" r="1.5" fill="#10B981"/>
+            <path d="M12 17.5V19.5" stroke="#10B981" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3 class="empty-title">No muse.ai Accounts Saved</h3>
+        <p class="empty-desc">
+          Capture your active session or import accounts to switch profiles in 1-click without logging out.
+        </p>
+        <button id="btn-empty-capture" class="btn btn-primary btn-block">
+          ⚡ Capture Current Session
+        </button>
+        <button id="btn-empty-import" class="btn btn-secondary btn-block">
+          Import from JSON
+        </button>
+      </section>
+    </main>
+
+    <!-- Footer Action Bar -->
+    <footer class="app-footer">
+      <div class="footer-status" id="footer-status-text">
+        <span class="status-dot"></span>
+        <span id="tab-status-message">Checking tab...</span>
+      </div>
+      <div class="footer-links">
+        <button id="btn-open-muse" class="btn-text">Open muse.ai ↗</button>
+      </div>
+    </footer>
+
+    <!-- Add Account Sliding Drawer -->
+    <div id="drawer-add-account" class="drawer-overlay hidden">
+      <div class="drawer-sheet">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+          <h3>Add Account to Vault</h3>
+          <button id="btn-close-add" class="close-btn" aria-label="Close">✕</button>
+        </div>
+
+        <div class="drawer-tabs">
+          <button class="drawer-tab active" data-tab="tab-capture">Capture Tab</button>
+          <button class="drawer-tab" data-tab="tab-import">Import JSON</button>
+        </div>
+
+        <!-- Tab 1: Capture from Tab -->
+        <div id="tab-capture" class="drawer-tab-content">
+          <div id="tab-detect-banner" class="banner-detect">
+            <span class="banner-icon">ℹ️</span>
+            <span id="banner-detect-text">Detecting active muse.ai tab...</span>
+          </div>
+
+          <form id="form-capture" class="drawer-form">
+            <div class="form-group">
+              <label for="capture-name">Account Name *</label>
+              <input type="text" id="capture-name" placeholder="e.g. Work Pro, Personal Vault" required>
+            </div>
+            <div class="form-group">
+              <label for="capture-email">Email or Identifier</label>
+              <input type="text" id="capture-email" placeholder="e.g. user@domain.com">
+            </div>
+            <div class="form-group">
+              <label for="capture-notes">Notes / Purpose</label>
+              <input type="text" id="capture-notes" placeholder="e.g. Video processing, Agency client">
+            </div>
+            <div class="form-group">
+              <label>Avatar Swatch Color</label>
+              <div class="color-swatches" id="add-color-swatches">
+                <button type="button" class="swatch selected" data-color="#0A85EA" style="background: #0A85EA;"></button>
+                <button type="button" class="swatch" data-color="#10B981" style="background: #10B981;"></button>
+                <button type="button" class="swatch" data-color="#8B5CF6" style="background: #8B5CF6;"></button>
+                <button type="button" class="swatch" data-color="#F59E0B" style="background: #F59E0B;"></button>
+                <button type="button" class="swatch" data-color="#EC4899" style="background: #EC4899;"></button>
+                <button type="button" class="swatch" data-color="#06B6D4" style="background: #06B6D4;"></button>
+              </div>
+            </div>
+            <div class="drawer-actions">
+              <button type="button" id="btn-cancel-add" class="btn btn-secondary">Cancel</button>
+              <button type="submit" id="btn-submit-capture" class="btn btn-primary">Save to Vault</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Tab 2: Manual JSON Import -->
+        <div id="tab-import" class="drawer-tab-content hidden">
+          <form id="form-import" class="drawer-form">
+            <div class="form-group">
+              <label for="import-json">Paste Cookies or Vault JSON</label>
+              <textarea id="import-json" rows="6" placeholder='{"accounts": { ... }} or [{"name": "muse_session_id", ...}]' required></textarea>
+            </div>
+            <div class="drawer-actions">
+              <button type="button" id="btn-cancel-import" class="btn btn-secondary">Cancel</button>
+              <button type="submit" id="btn-submit-import" class="btn btn-primary">Import</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Account Sliding Drawer -->
+    <div id="drawer-edit-account" class="drawer-overlay hidden">
+      <div class="drawer-sheet">
+        <div class="drawer-handle"></div>
+        <div class="drawer-header">
+          <h3>Edit Account</h3>
+          <button id="btn-close-edit" class="close-btn" aria-label="Close">✕</button>
+        </div>
+
+        <form id="form-edit" class="drawer-form">
+          <input type="hidden" id="edit-account-id">
+          <div class="form-group">
+            <label for="edit-name">Account Name *</label>
+            <input type="text" id="edit-name" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-email">Email or Identifier</label>
+            <input type="text" id="edit-email">
+          </div>
+          <div class="form-group">
+            <label for="edit-notes">Notes</label>
+            <input type="text" id="edit-notes">
+          </div>
+          <div class="form-group">
+            <label>Avatar Swatch Color</label>
+            <div class="color-swatches" id="edit-color-swatches">
+              <button type="button" class="swatch" data-color="#0A85EA" style="background: #0A85EA;"></button>
+              <button type="button" class="swatch" data-color="#10B981" style="background: #10B981;"></button>
+              <button type="button" class="swatch" data-color="#8B5CF6" style="background: #8B5CF6;"></button>
+              <button type="button" class="swatch" data-color="#F59E0B" style="background: #F59E0B;"></button>
+              <button type="button" class="swatch" data-color="#EC4899" style="background: #EC4899;"></button>
+              <button type="button" class="swatch" data-color="#06B6D4" style="background: #06B6D4;"></button>
+            </div>
+          </div>
+
+          <div class="account-stat-box">
+            <div class="stat-item">
+              <span class="stat-label">Stored Cookies:</span>
+              <span id="edit-cookie-count" class="stat-value">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Last Active:</span>
+              <span id="edit-last-active" class="stat-value">Never</span>
+            </div>
+          </div>
+
+          <div class="drawer-danger-zone">
+            <button type="button" id="btn-delete-account" class="btn btn-danger btn-block">
+              🗑️ Delete Account from Vault
+            </button>
+          </div>
+
+          <div class="drawer-actions">
+            <button type="button" id="btn-cancel-edit" class="btn btn-secondary">Cancel</button>
+            <button type="submit" id="btn-submit-edit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Kebab Dropdown Popover (Floating) -->
+    <div id="kebab-popover" class="kebab-popover hidden">
+      <button class="kebab-action" data-kebab="edit">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <span>Edit Account</span>
+      </button>
+      <button class="kebab-action" data-kebab="resync">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <span>Re-capture Live Cookies</span>
+      </button>
+      <button class="kebab-action" data-kebab="copy">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Cookies JSON</span>
+      </button>
+      <div class="kebab-divider"></div>
+      <button class="kebab-action action-danger" data-kebab="delete">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <span>Delete Account</span>
+      </button>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
